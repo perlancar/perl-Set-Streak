@@ -101,7 +101,7 @@ sub gen_longest_streaks_table {
             } # FIND_NEW
 
 
-            # find broken streaks: items that no longer appears in this period
+            # find broken streaks: items that no longer appear in this period
           FIND_BROKEN: {
                 for my $item (keys %current_items) {
                     my $key = $current_items{$item} . "." . $item;
