@@ -36,9 +36,21 @@ For example, let's generate a table for longest daily CPAN releases for November
       [qw/JGNI JRM TEAM LICHTKIND JJATRIA JDEGUEST PERLANCAR SVW DRCLAW PLAIN SUKRIA RSCHUPP/],          # period 5 (current): list of CPAN authors releasing something on Nov 5, 2023
     ]
 
-The output of the routine (in text table form) will be:
+The result of the routine will be like:
 
-Sorting is done by
+    [
+      {item=>"PERLANCAR", start=>1, len=>5, status=>"ongoing"},
+      { item => "SREZIC", len => 3, start => 2, status => "might-break" },
+      { item => "JGNI", len => 3, start => 3, status => "ongoing" },
+      { item => "JRM", len => 2, start => 4, status => "ongoing" },
+      { item => "CUKEBOT", len => 1, start => 1, status => "broken" },
+      { item => "DART", len => 1, start => 1, status => "broken" },
+      { item => "JJATRIA", len => 1, start => 1, status => "broken" },
+      ...
+    ]
+
+Sorting is done by `len` (descending) first, then by `start` (ascending), then
+by `item` (ascending).
 
 MARKDOWN
     args => {
