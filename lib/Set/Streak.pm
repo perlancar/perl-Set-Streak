@@ -166,7 +166,7 @@ sub gen_longest_streaks_table {
 }
 
 1;
-# ABSTRACT: Routines related to streaks (longest appearance in consecutive sets)
+# ABSTRACT: Routines related to streaks (longest item appearance in consecutive sets)
 
 =head1 SEE ALSO
 
