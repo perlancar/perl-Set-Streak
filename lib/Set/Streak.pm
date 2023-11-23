@@ -83,7 +83,7 @@ sub gen_longest_streaks_table {
 
     my $sets = $args{sets};
 
-    my %streaks; # list of all streaks, key="<period>.<item name>", value=[length, broken in which period]
+    my %streaks; # list of all streaks, key="<starting period>.<item name>", value=[length, broken in which period]
   FIND_STREAKS: {
         my $period = 0;
         my %current_items; # items with streaks currently going, key=item, val=starting period
