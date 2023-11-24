@@ -15,6 +15,8 @@ our @EXPORT_OK = qw(gen_longest_streaks_table);
 
 our %SPEC;
 
+my $re = qr/\A(\d+)\.(.*)\z/;
+
 $SPEC{gen_longest_streaks_table} = {
     v => 1.1,
     summary => 'Generate ranking table of longest streaks',
@@ -74,47 +76,107 @@ returned.
 
 MARKDOWN
         },
+
+        # the advanced options are used for caching streaks data structure and
+        # reusing it later for faster update
+        raw => {
+            summary => 'Instead of streaks table, return the raw streaks hash',
+            schema => 'true*',
+            tags => ['category:advanced'],
+        },
+        streaks => {
+            summary => 'Initialize streaks hash with this',
+            schema => 'hash*',
+            tags => ['category:advanced'],
+        },
+        start_period => {
+            schema => 'posint*',
+            tags => ['category:advanced'],
+        },
     },
-    args_rels => [
-    ],
+    args_rels => {
+        req_all => [qw/streaks start_period/],
+    },
     result_naked => 1,
 };
 sub gen_longest_streaks_table {
     my %args = @_;
 
     my $sets = $args{sets};
+    my $prev_period = 0;
 
     my %streaks; # list of all streaks, key="<starting period>.<item name>", value=[length, broken in which period]
+
+  INIT_STREAKS:
+    if ($args{streaks}) {
+        %streaks = %{ $args{streaks} };
+        for my $key (keys %streaks) {
+            my $streak = $streaks{$key};
+            my ($start, $item) = $key =~ $re or die;
+            my $p = $start + $streak->[0] - 1;
+            $prev_period = $p if $prev_period < $p;
+        }
+    }
+
+  INIT_START_PERIOD:
+    my $period;
+    if ($args{start_period}) {
+        if ($prev_period > 0) {
+            return [412, "Start period must be $prev_period or ".($prev_period+1)]
+                unless $args{start_period} == $prev_period || $args{start_period} == $prev_period+1;
+        } else {
+            return [412, "Start period must be 1"]
+                unless $args{start_period} == 1;
+        }
+        $period = $args{start_period} - 1;
+    } else {
+        $period = $prev_period;
+    }
+
+  INIT_CURRENT_ITEMS:
+    my %current_items; # items with streaks currently going, key=item, val=starting period
+    for my $key (keys %streaks) {
+        my $streak = $streaks{$key};
+        my ($start, $item) = $key =~ $re or die;
+        $current_items{$item} = $start if !defined($streak->[1]) ||
+            $streak->[1] == $prev_period;
+    }
+
   FIND_STREAKS: {
-        my $period = 0;
-        my %current_items; # items with streaks currently going, key=item, val=starting period
         for my $set (@$sets) {
             $period++;
             my %items_this_period; $items_this_period{$_}++ for @$set;
+            my %new_items_this_period;
 
             # find new streaks: items that just appear in this period
           FIND_NEW: {
                 for my $item (@$set) {
                     next if $current_items{$item};
                     $current_items{$item} = $period;
-                    $streaks{ $period . "." . $item } = [0, undef];
+                    $streaks{ $period . "." . $item } = [1, undef];
+                    $new_items_this_period{$item} = 1;
                 }
             } # FIND_NEW
-
 
             # find broken streaks: items that no longer appear in this period
           FIND_BROKEN: {
                 for my $item (keys %current_items) {
                     my $key = $current_items{$item} . "." . $item;
                     if ($items_this_period{$item}) {
-                        # streak keeps going
-                        $streaks{$key}[0]++;
+                        if ($period > $prev_period) {
+                            unless ($new_items_this_period{$item}) {
+                                # streak keeps going
+                                $streaks{$key}[0]++;
+                            }
+                        } else {
+                            $streaks{$key}[1] = undef;
+                        }
                     } else {
                         # streak broken (but for current period, it might not
                         # just yet, the item might still appear later before the
                         # end of the current period. you just need to check if
                         # period number recorded is the current period
-                        $streaks{$key}[1] = $period;
+                        $streaks{$key}[1] //= $period;
                         delete $current_items{$item};
                     }
                 }
@@ -133,6 +195,11 @@ sub gen_longest_streaks_table {
         }
     } # FILTER_STREAKS
 
+  RETURN_RAW:
+    if ($args{raw}) {
+        return \%streaks;
+    }
+
     my @res;
   RANK_STREAKS: {
         require List::Rank;
@@ -140,8 +207,8 @@ sub gen_longest_streaks_table {
             sub {
                 my $streak_a = $streaks{$a};
                 my $streak_b = $streaks{$b};
-                my ($start_a, $item_a) = $a =~ /\A(\d+)\.(.*)\z/ or die;
-                my ($start_b, $item_b) = $b =~ /\A(\d+)\.(.*)\z/ or die;
+                my ($start_a, $item_a) = $a =~ $re or die;
+                my ($start_b, $item_b) = $b =~ $re or die;
                 ($streak_b->[0] <=> $streak_a->[0]) || # longer streaks first
                     ($start_a <=> $start_b) ||         # earlier streaks first
                     ($item_a cmp $item_b);             # asciibetically
@@ -150,7 +217,7 @@ sub gen_longest_streaks_table {
         );
 
         while (my ($key, $rank) = splice @rankres, 0, 2) {
-            my ($start, $item) = $key =~ /\A(\d+)\.(.*)\z/ or die;
+            my ($start, $item) = $key =~ $re or die;
             my $streak = $streaks{$key};
             my $status = !defined($streak->[1]) ? "ongoing" :
                 ($streak->[1] < $cur_period) ? "broken" : "might-break";
