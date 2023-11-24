@@ -39,7 +39,7 @@ For example, let's generate a table for longest daily CPAN releases for November
 The result of the routine will be like:
 
     [
-      {item=>"PERLANCAR", start=>1, len=>5, status=>"ongoing"},
+      { item => "PERLANCAR", len => 5, start => 1, status => "ongoing" },
       { item => "SREZIC", len => 3, start => 2, status => "might-break" },
       { item => "JGNI", len => 3, start => 3, status => "ongoing" },
       { item => "JRM", len => 2, start => 4, status => "ongoing" },
@@ -60,6 +60,7 @@ MARKDOWN
         },
         exclude_broken => {
             summary => 'Whether to exclude broken streaks',
+            schema => 'bool*',
             description => <<'MARKDOWN',
 
 Streak status is either: `ongoing` (item still appear in current period),
