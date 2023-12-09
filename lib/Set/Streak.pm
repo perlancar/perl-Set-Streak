@@ -93,6 +93,11 @@ MARKDOWN
             schema => 'posint*',
             tags => ['category:advanced'],
         },
+
+        min_len => {
+            summary => 'Minimum length of streak to return',
+            schema => 'posint*',
+        },
     },
     args_rels => {
         req_all => [qw/streaks start_period/],
@@ -186,12 +191,14 @@ sub gen_longest_streaks_table {
 
     my $cur_period = @$sets;
   FILTER_STREAKS: {
-        last unless $args{exclude_broken};
         for my $key (keys %streaks) {
             my $streak = $streaks{$key};
-            next unless defined $streak->[1];
-            next if $streak->[1] == $cur_period;
-            delete $streaks{$key};
+            if ($args{exclude_broken}) {
+                if (defined $streak->[1] && !($streak->[1] == $cur_period)) { delete $streaks{$key} }
+            }
+            if (defined $args{min_len}) {
+                delete $streaks{$key} if $streak->[0] < $args{min_len};
+            }
         }
     } # FILTER_STREAKS
 
