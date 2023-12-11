@@ -75,6 +75,16 @@ If you set this option to true, streaks that have the status of `broken` are not
 returned.
 
 MARKDOWN
+            tags => ['category:filtering'],
+        },
+        #remove_duplicate_items => {
+        #    summary => 'If an item is listed in multiple streaks, only include the first (longest) streak in the result',
+        #    schema => 'bool*',
+        #},
+        min_len => {
+            summary => 'Minimum length of streak to return',
+            schema => 'posint*',
+            tags => ['category:filtering'],
         },
 
         # the advanced options are used for caching streaks data structure and
@@ -94,10 +104,6 @@ MARKDOWN
             tags => ['category:advanced'],
         },
 
-        min_len => {
-            summary => 'Minimum length of streak to return',
-            schema => 'posint*',
-        },
     },
     args_rels => {
         req_all => [qw/streaks start_period/],
