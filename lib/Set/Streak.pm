@@ -121,6 +121,7 @@ sub gen_longest_streaks_table {
   INIT_STREAKS:
     if ($args{streaks}) {
         %streaks = %{ $args{streaks} };
+        # initialize prev_period
         for my $key (keys %streaks) {
             my $streak = $streaks{$key};
             my ($start, $item) = $key =~ $re or die;
